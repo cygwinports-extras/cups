@@ -1,0 +1,113 @@
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*SlackBuild*' -x '*.egg-info' -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.spec' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x config.rpath -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in origsrc/cups-1.3.5/cups/Makefile src/cups-1.3.5/cups/Makefile
+--- origsrc/cups-1.3.5/cups/Makefile	2007-07-11 16:46:42.000000000 -0500
++++ src/cups-1.3.5/cups/Makefile	2007-12-18 13:24:41.992766700 -0600
+@@ -294,7 +294,7 @@
+ 
+ libcups.la:    $(LIBOBJS)
+ 	echo Linking $@...
+-	$(CC) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS:.o=.lo) -rpath $(LIBDIR) \
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS:.o=.lo) -rpath $(LIBDIR) \
+ 		-version-info 2:8 $(LIBGSSAPI) $(SSLLIBS) $(COMMONLIBS) $(LIBZ)
+ 
+ 
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*SlackBuild*' -x '*.egg-info' -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.spec' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x config.rpath -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in origsrc/cups-1.3.5/cups/file.c src/cups-1.3.5/cups/file.c
+--- origsrc/cups-1.3.5/cups/file.c	2007-09-17 15:35:54.000000000 -0500
++++ src/cups-1.3.5/cups/file.c	2007-12-18 09:50:27.754302200 -0600
+@@ -74,6 +74,9 @@
+ #  include <io.h>
+ #  include <sys/locking.h>
+ #endif /* WIN32 */
++#ifdef __CYGWIN__
++#  include <sys/file.h>
++#endif /* __CYGWIN__ */
+ 
+ 
+ /*
+@@ -761,6 +764,8 @@
+ 
+ #ifdef WIN32
+   return (locking(fp->fd, block ? _LK_LOCK : _LK_NBLCK, 0));
++#elif defined(__CYGWIN__)
++  return (flock(fp->fd, block ? LOCK_EX : LOCK_NB));
+ #else
+   return (lockf(fp->fd, block ? F_LOCK : F_TLOCK, 0));
+ #endif /* WIN32 */
+@@ -1579,6 +1584,8 @@
+ 
+ #ifdef WIN32
+   return (locking(fp->fd, _LK_UNLCK, 0));
++#elif defined(__CYGWIN__)
++  return (flock(fp->fd, LOCK_UN));
+ #else
+   return (lockf(fp->fd, F_ULOCK, 0));
+ #endif /* WIN32 */
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*SlackBuild*' -x '*.egg-info' -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.spec' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x config.rpath -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in origsrc/cups-1.3.5/cups/getifaddrs.c src/cups-1.3.5/cups/getifaddrs.c
+--- origsrc/cups-1.3.5/cups/getifaddrs.c	2007-07-11 16:46:42.000000000 -0500
++++ src/cups-1.3.5/cups/getifaddrs.c	2007-12-18 09:49:28.179917500 -0600
+@@ -179,6 +179,7 @@
+ 		 sizeof(request.ifr_broadaddr));
+       }
+     }
++#ifdef IFF_POINTOPOINT
+     else if (temp->ifa_flags & IFF_POINTOPOINT)
+     {
+      /*
+@@ -192,6 +193,7 @@
+ 	       sizeof(request.ifr_dstaddr));
+       }
+     }
++#endif
+   }
+ 
+  /*
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*SlackBuild*' -x '*.egg-info' -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.spec' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x config.rpath -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in origsrc/cups-1.3.5/scheduler/network.c src/cups-1.3.5/scheduler/network.c
+--- origsrc/cups-1.3.5/scheduler/network.c	2007-07-11 16:46:42.000000000 -0500
++++ src/cups-1.3.5/scheduler/network.c	2007-12-18 11:12:58.643838000 -0600
+@@ -226,8 +226,12 @@
+     }
+ #endif /* AF_INET6 */
+ 
++#ifdef IFF_POINTOPOINT
+     if (!(addr->ifa_flags & IFF_POINTOPOINT) &&
+         !httpAddrLocalhost(&(temp->address)))
++#else
++    if (!httpAddrLocalhost(&(temp->address)))
++#endif /* IFF_POINTOPOINT */
+       temp->is_local = 1;
+ 
+    /*
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*SlackBuild*' -x '*.egg-info' -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.spec' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x config.rpath -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in origsrc/cups-1.3.5/scripting/perl/Makefile.PL src/cups-1.3.5/scripting/perl/Makefile.PL
+--- origsrc/cups-1.3.5/scripting/perl/Makefile.PL	2002-08-19 15:43:03.000000000 -0500
++++ src/cups-1.3.5/scripting/perl/Makefile.PL	2007-12-18 13:17:38.979230700 -0600
+@@ -8,10 +8,10 @@
+     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
+       (ABSTRACT_FROM => 'CUPS.pm', # retrieve abstract from module
+        AUTHOR     => 'A. U. Thor <a.u.thor@a.galaxy.far.far.away>') : ()),
+-    'LIBS'		=> ['-lcups '], # e.g., '-lm'
++    'LIBS'		=> ['-L../../cups/.libs -lcups '], # e.g., '-lm'
+     'DEFINE'		=> '', # e.g., '-DHAVE_SOMETHING'
+ 	# Insert -I. if you add *.h files later:
+-    'INC'		=> '', # e.g., '-I/usr/include/other'
++    'INC'		=> '-I../../', # e.g., '-I/usr/include/other'
+ 	# Un-comment this if you add C files to link with later:
+     # 'OBJECT'		=> '$(O_FILES)', # link all the C files too
+ );
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*SlackBuild*' -x '*.egg-info' -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.spec' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x config.rpath -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in origsrc/cups-1.3.5/scripting/php/Makefile src/cups-1.3.5/scripting/php/Makefile
+--- origsrc/cups-1.3.5/scripting/php/Makefile	2007-07-11 16:46:42.000000000 -0500
++++ src/cups-1.3.5/scripting/php/Makefile	2007-12-18 13:25:00.852745200 -0600
+@@ -98,6 +98,15 @@
+ 	echo $(DSO) $$DSOFLAGS $(ARCHFLAGS) -o $@ $(OBJS) -L../../cups $(LIBS); \
+ 	$(DSO) $$DSOFLAGS $(ARCHFLAGS) -o $@ $(OBJS) -L../../cups $(LIBS)
+ 
++#
++# phpcups.la
++#
++
++phpcups.la: $(OBJS)
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS:.o=.lo) -rpath $(PHPDIR) \
++		-module -avoid-version ../../cups/libcups.la $(PHPLIBS)
++
+ 
+ #
+ # Dependencies...

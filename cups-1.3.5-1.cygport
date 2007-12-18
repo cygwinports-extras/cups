@@ -1,0 +1,89 @@
+inherit java perl php python
+
+DESCRIPTION="Common UNIX Printing System"
+HOMEPAGE="http://www.cups.org/"
+SRC_URI="
+	mirror://sourceforge/${PN}/${P}-source.tar.bz2
+	mirror://portage/net-print/${PN}/files/pdftops.pl
+"
+
+CPPFLAGS+=" -Dtimezonevar"
+
+src_compile() {
+	cd ${S}
+	lndirs
+	NO_AUTOHEADER=1
+	cygautoreconf
+
+	cd ${B}
+
+	cygconf \
+		--libexecdir=/usr/lib \
+		--enable-libtool-unsupported=/usr/bin/libtool \
+		--disable-acl \
+		--disable-dnssd \
+		--enable-gnutls \
+		--enable-gssapi \
+		--enable-jpeg \
+		--enable-ldap \
+		--disable-libpaper \
+		--enable-nls \
+		--disable-pam \
+		--disable-pdftops \
+		--disable-slp \
+		--enable-ssl \
+		--disable-static \
+		--enable-threads \
+		--enable-tiff \
+		--with-languages=all \
+		--with-java=${JAVA} \
+		--with-perl=${PERL} \
+		--with-php=${PHP} \
+		--with-python=${PYTHON}
+
+	# core and PHP bindings
+	cygmake \
+		CC="libtool --mode=compile --tag=CC gcc" \
+		CXX="libtool --mode=compile --tag=CXX g++" \
+		DSO="libtool --mode=link --tag=CC gcc" \
+		DSOFLAGS="-no-undefined" \
+		PHPCUPS="phpcups.la" \
+		PHPLIBS="-lphp5lib"
+
+	# Java bindings
+	cd ${B}/scripting/java
+	rm -fr cups.jar classes/*
+	verbose ${JAVAC} -d classes $(find src/ -name '*.java')
+	verbose ${JAR} cf cups.jar -C classes com/
+
+	# Perl bindings
+	cd ${B}/scripting/perl
+	perl_compile
+}
+
+src_install() {
+	cd ${B}
+	cyginstall \
+		BUILDROOT=${D} \
+		LIBTOOL="/usr/bin/libtool --mode=install"
+
+	exeinto /usr/lib/cups/filter
+	newexe ${S}/pdftops.pl pdftops
+
+	sed -e "s!htmlview!xdg-open!" \
+		-i ${D}/usr/share/applications/cups.desktop
+
+	# lpr(1) conflicts with that of cygutils
+	mv ${D}/usr/bin/{,cups-}lpr.exe
+
+	# Java bindings
+	dojar ${B}/scripting/java/cups.jar
+
+	# Perl bindings
+	cd ${B}/scripting/perl
+	perl_install
+	perl_postinst
+
+	# PHP bindings
+	php_postinst
+}
