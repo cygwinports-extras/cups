@@ -1,0 +1,62 @@
+--- origsrc/cups-1.3.10/config-scripts/cups-sharedlibs.m4	2007-07-11 16:46:42.000000000 -0500
++++ src/cups-1.3.10/config-scripts/cups-sharedlibs.m4	2009-06-30 17:32:47.737155300 -0500
+@@ -60,6 +60,12 @@ if test x$enable_shared != xno; then
+ 			DSO="\$(CC)"
+ 			DSOFLAGS="$DSOFLAGS -dynamiclib -single_module -lc"
+ 			;;
++		CYGWIN*)
++			LIBCUPS="cygcups-2.dll"
++			LIBCUPSIMAGE="cygcupsimage-2.dll"
++			DSO="\$(CC)"
++			DSOFLAGS="$DSOFLAGS -shared -Wl,--out-implib,\$(@:cyg%-2.dll=lib%.dll.a)"
++			;;
+ 		AIX*)
+ 			LIBCUPS="libcups_s.a"
+ 			LIBCUPSIMAGE="libcupsimage_s.a"
+--- origsrc/cups-1.3.10/cups/Makefile	2009-06-30 14:03:11.485726800 -0500
++++ src/cups-1.3.10/cups/Makefile	2009-06-30 17:24:33.128347700 -0500
+@@ -277,6 +277,15 @@ libcups.2.dylib:	$(LIBOBJS) $(LIBCUPSORD
+ 
+ 
+ #
++# cygcups-2.dll
++#
++
++cygcups-2.dll:	$(LIBOBJS) $(LIBCUPSORDER)
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LIBGSSAPI) $(SSLLIBS) $(COMMONLIBS) $(LIBZ)
++
++
++#
+ # libcups_s.a
+ #
+ 
+--- origsrc/cups-1.3.10/filter/Makefile	2009-03-12 16:34:21.000000000 -0500
++++ src/cups-1.3.10/filter/Makefile	2009-06-30 17:26:51.476711700 -0500
+@@ -249,6 +249,15 @@ libcupsimage.2.dylib:	$(IMAGEOBJS) $(LIB
+ 
+ 
+ #
++# cygcupsimage-2.dll
++#
++
++cygcupsimage-2.dll:	$(IMAGEOBJS) $(LIBCUPSIMAGEORDER)
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(IMAGEOBJS) $(DSOLIBS) -L../cups $(LINKCUPS)
++
++
++#
+ # libcupsimage_s.a
+ #
+ 
+--- origsrc/cups-1.3.10/scripting/perl/Makefile.PL	2009-06-30 14:03:11.488226800 -0500
++++ src/cups-1.3.10/scripting/perl/Makefile.PL	2009-06-30 17:37:33.954279600 -0500
+@@ -8,7 +8,7 @@ WriteMakefile(
+     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
+       (ABSTRACT_FROM => 'CUPS.pm', # retrieve abstract from module
+        AUTHOR     => 'A. U. Thor <a.u.thor@a.galaxy.far.far.away>') : ()),
+-    'LIBS'		=> ['-L../../cups/.libs -lcups '], # e.g., '-lm'
++    'LIBS'		=> ['-L../../cups -lcups '], # e.g., '-lm'
+     'DEFINE'		=> '', # e.g., '-DHAVE_SOMETHING'
+ 	# Insert -I. if you add *.h files later:
+     'INC'		=> '-I../../', # e.g., '-I/usr/include/other'
