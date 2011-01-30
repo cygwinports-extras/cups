@@ -1,0 +1,168 @@
+--- origsrc/cups-1.4.6/cgi-bin/Makefile	2010-04-23 13:56:34.000000000 -0500
++++ src/cups-1.4.6/cgi-bin/Makefile	2011-01-29 23:47:18.173398000 -0600
+@@ -220,6 +220,15 @@ libcupscgi.so.1 libcupscgi.sl.1:	$(LIBOB
+ 
+ 
+ #
++# cygcupscgi-1.dll
++#
++
++cygcupscgi-1.dll:	$(LIBOBJS)
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LIBS)
++
++
++#
+ # libcupscgi.1.dylib
+ #
+ 
+--- origsrc/cups-1.4.6/config-scripts/cups-directories.m4	2009-04-12 18:04:51.000000000 -0500
++++ src/cups-1.4.6/config-scripts/cups-directories.m4	2011-01-30 14:50:13.009478500 -0600
+@@ -350,7 +350,7 @@ AC_DEFINE_UNQUOTED(CUPS_FONTPATH, "$CUPS
+ # Locale data
+ if test "$localedir" = "\${datarootdir}/locale"; then
+ 	case "$uname" in
+-		Linux | GNU | *BSD* | Darwin*)
++		Linux | GNU | *BSD* | Darwin* | CYGWIN* )
+ 			CUPS_LOCALEDIR="$datarootdir/locale"
+ 			;;
+ 
+--- origsrc/cups-1.4.6/config-scripts/cups-sharedlibs.m4	2010-06-15 19:49:01.000000000 -0500
++++ src/cups-1.4.6/config-scripts/cups-sharedlibs.m4	2011-01-30 08:39:21.302162000 -0600
+@@ -101,6 +101,17 @@ if test x$enable_shared != xno; then
+ 			DSOXX="\$(CXX)"
+ 			DSOFLAGS="$DSOFLAGS -dynamiclib -single_module -lc"
+ 			;;
++		CYGWIN*)
++			LIBCUPS="cygcups-2.dll"
++			LIBCUPSCGI="cygcupscgi-1.dll"
++			LIBCUPSDRIVER="cygcupsdriver-1.dll"
++			LIBCUPSIMAGE="cygcupsimage-2.dll"
++			LIBCUPSMIME="cygcupsmime-1.dll"
++			LIBCUPSPPDC="cygcupsppdc-1.dll"
++			DSO="\$(CC)"
++			DSOXX="\$(CXX)"
++			DSOFLAGS="$DSOFLAGS -shared -Wl,--out-implib,\$(shell echo \$@ | sed 's/cyg\(.*\)-.\.dll/lib\1.dll.a/')"
++			;;
+ 		AIX*)
+ 			LIBCUPS="libcups_s.a"
+ 			LIBCUPSCGI="libcupscgi_s.a"
+--- origsrc/cups-1.4.6/cups/Makefile	2010-04-23 13:56:34.000000000 -0500
++++ src/cups-1.4.6/cups/Makefile	2011-01-30 08:09:04.204194900 -0600
+@@ -344,6 +344,16 @@ libcups.2.dylib:	$(LIBOBJS) $(LIBCUPSORD
+ 
+ 
+ #
++# cygcups-2.dll
++#
++
++cygcups-2.dll:	$(LIBOBJS) $(LIBCUPSORDER)
++	echo Linking $@...
++	echo $(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LIBGSSAPI) $(SSLLIBS) $(COMMONLIBS) $(LIBZ)
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LIBGSSAPI) $(SSLLIBS) $(COMMONLIBS) $(LIBZ)
++
++
++#
+ # libcups_s.a
+ #
+ 
+--- origsrc/cups-1.4.6/driver/Makefile	2010-04-23 13:56:34.000000000 -0500
++++ src/cups-1.4.6/driver/Makefile	2011-01-29 23:26:24.197739800 -0600
+@@ -323,6 +323,15 @@ libcupsdriver.so.1 libcupsdriver.sl.1:	$
+ 
+ 
+ #
++# cygcupsdriver-1.dll
++#
++
++cygcupsdriver-1.dll:	$(LIBOBJS) libcupsdriver.exp
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LIBS)
++
++
++#
+ # libcupsdriver.1.dylib
+ #
+ 
+--- origsrc/cups-1.4.6/filter/Makefile	2010-04-23 13:56:34.000000000 -0500
++++ src/cups-1.4.6/filter/Makefile	2011-01-29 21:58:30.764344300 -0600
+@@ -374,6 +374,15 @@ libcupsimage.2.dylib:	$(IMAGEOBJS) $(LIB
+ 
+ 
+ #
++# cygcupsimage-2.dll
++#
++
++cygcupsimage-2.dll:	$(IMAGEOBJS) $(LIBCUPSIMAGEORDER)
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(IMAGEOBJS) $(DSOLIBS) -L../cups $(LINKCUPS)
++
++
++#
+ # libcupsimage_s.a
+ #
+ 
+--- origsrc/cups-1.4.6/ppdc/Makefile	2011-01-06 16:21:05.000000000 -0600
++++ src/cups-1.4.6/ppdc/Makefile	2011-01-30 08:40:20.504265200 -0600
+@@ -343,6 +343,15 @@ libcupsppdc.so.1 libcupsppdc.sl.1:	$(LIB
+ 
+ 
+ #
++# cygcupsppdc-1.dll
++#
++
++cygcupsppdc-1.dll:	$(LIBOBJS) ../cups/$(LIBCUPS)
++	echo Linking $@...
++	$(DSOXX) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LINKCUPS) $(LIBS)
++
++
++#
+ # libcupsppdc.1.dylib
+ #
+ 
+--- origsrc/cups-1.4.6/scheduler/Makefile	2010-04-23 13:56:34.000000000 -0500
++++ src/cups-1.4.6/scheduler/Makefile	2011-01-29 23:51:27.151629600 -0600
+@@ -373,6 +373,15 @@ libcupsmime.so.1 libcupsmime.sl.1:	$(LIB
+ 
+ 
+ #
++# cygcupsmime-1.dll
++#
++
++cygcupsmime-1.dll:	$(LIBOBJS)
++	echo Linking $@...
++	$(DSO) $(ARCHFLAGS) $(DSOFLAGS) -o $@ $(LIBOBJS) $(LIBS)
++
++
++#
+ # libcupsmime.1.dylib
+ #
+ 
+--- origsrc/cups-1.4.6/scripting/php/Makefile	2008-08-27 16:12:43.000000000 -0500
++++ src/cups-1.4.6/scripting/php/Makefile	2011-01-29 22:28:48.425141500 -0600
+@@ -21,6 +21,7 @@ include ../../Makedefs
+ #
+ 
+ PHPDIR	=	$(BUILDROOT)`$(PHPCONFIG) --extension-dir`
++PHPLIBS	=	$(BUILDROOT)`$(PHPCONFIG) --libs`
+ OPTIONS	=	$(PHPOPTIONS)
+ 
+ 
+@@ -142,6 +143,17 @@ phpcups.so:	$(OBJS) ../../Makedefs
+ 
+ 
+ #
++# phpcups.dll
++#
++
++phpcups.dll:	$(OBJS) ../../Makedefs
++	echo Linking $@...
++	DSOFLAGS="$(DSOFLAGS)";
++	echo $(DSO) $(ARCHFLAGS) -o $@ $(OBJS) -L../../cups $(DSOFLAGS) $(LIBS) $(PHPLIBS); \
++	$(DSO) $(ARCHFLAGS) -o $@ $(OBJS) -L../../cups $(DSOFLAGS) $(LIBS) $(PHPLIBS)
++
++
++#
+ # Dependencies...
+ #
+ 

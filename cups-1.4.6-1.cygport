@@ -1,0 +1,99 @@
+inherit java perl php python
+
+DESCRIPTION="Common UNIX Printing System"
+HOMEPAGE="http://www.cups.org/"
+SRC_URI="http://ftp.easysw.com/pub/${PN}/${PV}/${P}-source.tar.bz2"
+
+PATCH_URI="
+	1.4.6-cygwin.patch
+	1.4.6-perl-in-tree.patch
+"
+
+PKG_NAMES="cups libcups2 libcupscgi1 libcupsdriver1 libcupsimage2 libcupsmime1
+           libcupsppdc1 libcups-devel perl-CUPS php-cups"
+cups_CONTENTS="--exclude=*.dll --exclude=cups-config* --exclude=php5 --exclude=man3
+               etc/ usr/bin/ usr/lib/cups/ usr/sbin/ usr/share/ var/"
+libcups2_CONTENTS="usr/bin/cygcups-2.dll"
+libcupscgi1_CONTENTS="usr/bin/cygcupscgi-1.dll"
+libcupsdriver1_CONTENTS="usr/bin/cygcupsdriver-1.dll"
+libcupsimage2_CONTENTS="usr/bin/cygcupsimage-2.dll"
+libcupsmime1_CONTENTS="usr/bin/cygcupsmime-1.dll"
+libcupsppdc1_CONTENTS="usr/bin/cygcupsppdc-1.dll"
+libcups_devel_CONTENTS="usr/bin/cups-config usr/include/ usr/lib/lib* usr/share/man/man1/cups-config.*"
+perl_CUPS_CONTENTS=${PERL_VENDORARCH#/}" usr/share/man/man3/*.3pm*"
+php_cups_CONTENTS=${PHP_INI_DIR#/}" "${PHP_EXTENSION_DIR#/}
+
+src_compile() {
+	cd ${S}
+	lndirs
+	NO_AUTOHEADER=1
+	cygautoreconf
+
+	cd ${B}
+	LIBS="-lssp"
+	cygconf \
+		--enable-shared \
+		--disable-acl \
+		--disable-dnssd \
+		--enable-gnutls \
+		--enable-gssapi \
+		--enable-jpeg \
+		--enable-ldap \
+		--enable-libpaper \
+		--enable-nls \
+		--disable-pam \
+		--disable-pdftops \
+		--disable-slp \
+		--enable-ssl \
+		--disable-static \
+		--enable-threads \
+		--enable-tiff \
+		--with-cups-group=None \
+		--with-system-groups=SYSTEM \
+		--with-languages=all \
+		--with-java=${JAVA} \
+		--with-perl=${PERL} \
+		--with-php=/usr/bin/php-cgi \
+		--with-python=${PYTHON}
+
+	# core and PHP bindings
+	cygmake -j1 PHPCUPS="phpcups.dll"
+
+	# Perl bindings
+	cd ${B}/scripting/perl
+	perl_compile
+}
+
+src_install() {
+	cd ${B}
+	cyginstall -j1 BUILDROOT=${D} INITDIR= PHPCUPS="phpcups.dll"
+
+	mv ${D}/usr/lib/*.dll ${D}/usr/bin/
+	dolib {cgi-bin,cups,driver,filter,ppdc,scheduler}/*.a
+
+	sed -e "s!htmlview!xdg-open!" \
+		-i ${D}/usr/share/applications/cups.desktop
+
+	cd ${B}/scripting/perl
+	perl_install
+	perl_postinst
+
+	# FIXME: lpr(1) conflicts with that of cygutils
+#	mv ${D}/usr/bin/{,cups-}lpr.exe
+#	mv ${D}/usr/share/man/man1/{,cups-}lpr.1
+
+	# PHP bindings
+	php_postinst
+}
+
+KEEPDIRS="
+	/usr/lib/cups/driver
+	/usr/share/cups/model
+	/usr/share/cups/profiles
+	/var/cache/cups/rss
+	/var/run/cups/certs
+	/var/spool/cups/tmp
+	/etc/cups/interfaces
+	/etc/cups/ppd
+	/etc/cups/ssl
+"
